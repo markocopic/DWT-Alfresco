@@ -6,6 +6,8 @@
 <!-- SIDEBAR MENU WITH SEARCH FILTERS -->
     <v-flex xs10 sm6 md2 order-lg2 class="sidebar pa-3 ma-1 text-sm-center">
       <v-btn :loading="loading" class="indigo white--text" @click="startSearch">Start search</v-btn>
+      <!-- CLEAR ALL SEARCH PARAMS -->
+      <v-btn flat outline :loading="loading" color="error" @click="clearParams">Clear search</v-btn>
       <v-form ref="form">
         <!-- DATE PICKER 1 -->
         <v-menu
@@ -62,9 +64,30 @@
         <v-checkbox v-model="checkboxFolder" label="Show only folders"></v-checkbox>  
 
        </v-form>
-       <!-- CLEAR ALL SEARCH PARAMS -->
-       <v-btn flat outline :loading="loading" color="error" @click="clearParams">Clear search</v-btn>
-       <div id="dwtcontrolContainer2" style="visibility: hidden;!important"></div>
+      
+      <v-btn v-if="image && !chat" :loading="loading" class="indigo white--text" @click="openChat">Open chat</v-btn>
+      <v-btn v-if="image && chat" :loading="loading" flat outline color="indigo" @click="closeChat">Close chat</v-btn>
+
+      <transition name="chat">
+        <div>
+          <div v-if="chat" class="chat-area pa-1">
+              <div v-for="(msg,i) in chatMsg" :key="i"  :class="msg.name==username?'leftAlign':'rightAlign'">
+                <p style="font-size:9px;color:grey;margin:3px 0 0;">{{msg.time | chatDate}}</p>
+                <h3 class="ma-0 pa-0">{{msg.name}}</h3>
+                <div>
+                  <p class="ma-0 pa-0">{{msg.msg}}</p>
+                </div>     
+              </div>
+          </div>
+          <v-text-field
+              v-if="chat"
+              v-model="chatMessage"
+              placeholder="enter text"
+            ></v-text-field>
+        </div>
+      </transition>
+
+      <div id="dwtcontrolContainer2" style="visibility: hidden;!important"></div>
     </v-flex>
   </transition>
 
@@ -111,9 +134,10 @@
         <v-card class="ma-2">
           <!-- PAGINATION SECTION -->
           <v-card-title>
-            <div><v-btn :disabled="!hasPrev" flat  @click='prev' color="primary">prev</v-btn>
+            <div>
+              <v-btn :disabled="!hasPrev" flat  @click='prev' color="indigo">prev</v-btn>
               <h3 class="d-inline" style="color:#616161;">page {{ page }} of {{ pageNumber }}</h3>
-              <v-btn :disabled="!hasNext" flat  @click='next' color="primary">next</v-btn>
+              <v-btn :disabled="!hasNext" flat  @click='next' color="indigo">next</v-btn>
             </div>
 
             <v-spacer></v-spacer>
@@ -253,6 +277,8 @@ export default {
   },
   data() {
     return {
+      chat: false,
+      baseURL: this.$store.state.baseURL,
       list: [{property:null,searchTerm:''}],
       n: 1,
       logged: this.$store.state.logged,
@@ -279,6 +305,9 @@ export default {
         },
         { label:'Meta podatak',
           value:'csm:metapodatak:'
+        },
+        { label:'Text content',
+          value:'TEXT:'
         }
       ],
       options2: [],
@@ -339,29 +368,49 @@ export default {
       maxItems: 5,
       skipCount: 0,
       hasPrev: false,
-      hasNext: false
+      hasNext: false,
+      chatMsg:[],
+      username: sessionStorage.getItem('name'),
+      chatMessage:'',
+      interval: null,
+      docId: null
     }
   },
   filters: {
-        formatDate: function (value) {
-            if (!value) return ''
-            value = value.toString()
-            return value.slice(0,10)
-        }
+    formatDate: function (value) {
+        if (!value) return ''
+        value = value.toString()
+        return value.slice(0,10)
     },
+    chatDate: function (value) {
+        if (!value) return '';
+        let date = new Date(value);
+        date = date.toString();
+        return date.slice(0,25);
+    }
+  },
   mounted(){
-      let self = this;
-      Dynamsoft.WebTwainEnv.CreateDWTObject(
-            "dwtcontrolContainer2",
-            function (newDWObject) { 
-                self.DWObject2 = newDWObject;
-                 },
-            function (errorString) { 
-                console.log(errorString);
-                 }
-            );
+    let self = this;
+    Dynamsoft.WebTwainEnv.CreateDWTObject(
+      "dwtcontrolContainer2",
+      function (newDWObject) { 
+        self.DWObject2 = newDWObject;
+      },
+      function (errorString) { 
+        console.log(errorString);
+      }
+    );
   },
   methods: {
+    openChat(){
+      this.$router.push('chat/'+this.docId);
+      this.$store.state.bottomNav = 4;
+      
+    },
+    closeChat(){
+      this.chat = false;
+      clearInterval(this.interval)
+    },
     addNewSearch(){
       this.list.push({property:null,searchTerm:''});
       this.n+=1;
@@ -371,44 +420,43 @@ export default {
       this.n-=1;
     },
     download(){
-        let self = this;
-        let arr = [];
-        for (let i = 0; i <self.DWObject2.HowManyImagesInBuffer; i++) {
-            arr.push(i);
-        }
-        self.DWObject2.ConvertToBase64 (arr, EnumDWT_ImageType.IT_PDF, asyncSuccessFunc,
-        asyncFailureFunc);
-        function asyncSuccessFunc(result){
-            var length=result.getLength();
-            let file = 'data:application/pdf;base64,'+result.getData(0,length);
-            FileSaver.saveAs(file, "document.pdf");
-        }
-        function asyncFailureFunc (errorCode, errorString) {
-        alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
-        }
+      let self = this;
+      let arr = [];
+      for (let i = 0; i <self.DWObject2.HowManyImagesInBuffer; i++) {
+          arr.push(i);
+      }
+      self.DWObject2.ConvertToBase64 (arr, EnumDWT_ImageType.IT_PDF, asyncSuccessFunc,
+      asyncFailureFunc);
+      function asyncSuccessFunc(result){
+          var length=result.getLength();
+          let file = 'data:application/pdf;base64,'+result.getData(0,length);
+          FileSaver.saveAs(file, "document.pdf");
+      }
+      function asyncFailureFunc (errorCode, errorString) {
+      alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
+      }
     },  
     optionalAsyncSuccessFunc(){
-        let self = this;
-        let arr = [];
-        for (let i = 0; i <self.DWObject2.HowManyImagesInBuffer; i++) {
-            arr.push(i);
-        }
-        
-        self.DWObject2.ConvertToBase64 (arr, EnumDWT_ImageType.IT_PDF, asyncSuccessFunc,
-            asyncFailureFunc);
-        function asyncSuccessFunc (result) {
-            var length=result.getLength();
-            self.image = 'data:application/pdf;base64,'+result.getData(0,length);
-            let loadingTask = pdf.createLoadingTask(self.image);
-            loadingTask.then(pdf =>{self.numPages = pdf.numPages});
-        }
-        function asyncFailureFunc (errorCode, errorString) {
-            alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
-        }
+      let self = this;
+      let arr = [];
+      for (let i = 0; i <self.DWObject2.HowManyImagesInBuffer; i++) {
+          arr.push(i);
+      }
+      
+      self.DWObject2.ConvertToBase64 (arr, EnumDWT_ImageType.IT_PDF, asyncSuccessFunc,
+          asyncFailureFunc);
+      function asyncSuccessFunc (result) {
+          var length=result.getLength();
+          self.image = 'data:application/pdf;base64,'+result.getData(0,length);
+          let loadingTask = pdf.createLoadingTask(self.image);
+          loadingTask.then(pdf =>{self.numPages = pdf.numPages});
+      }
+      function asyncFailureFunc (errorCode, errorString) {
+          alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
+      }
     },
     optionalAsyncFailureFunc(){
-        console.log('fail');
-        
+      console.log('fail');
     },  
     clearParams(){
       this.searchWord = '';
@@ -444,17 +492,24 @@ export default {
       
     },
     showUserInfo(id){
-        let self = this;
-        let token = 'Basic ' + btoa(sessionStorage.getItem('id'));
-        self.DWObject2.RemoveAllImages();
-        self.DWObject2.SetHTTPHeader('Authorization',token);
-            self.DWObject2.HTTPDownload('https://cors-anywhere.herokuapp.com','/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/'+id+'/content?attachment=true',
-             self.optionalAsyncSuccessFunc,
-             self.optionalAsyncFailureFunc);
-       
+      this.chatMsg = [];
+      this.chat = false;
+      this.docId = id;
+
+      let self = this;
+      if (self.DWObject2.Addon.PDF.IsModuleInstalled()) {
+          self.DWObject2.Addon.PDF.SetResolution(200);
+          self.DWObject2.Addon.PDF.SetConvertMode(EnumDWT_ConvertMode.CM_RENDERALL);
+        }
+      self.DWObject2.RemoveAllImages();
+      self.DWObject2.SetHTTPHeader('Authorization','Basic ' + btoa(sessionStorage.getItem('id')));
+          self.DWObject2.HTTPDownload(self.baseURL,'alfresco/versions/1/nodes/'+id+'/content?attachment=true',
+           self.optionalAsyncSuccessFunc,
+           self.optionalAsyncFailureFunc);
+      
     },
     startSearch(){
-        this.searchData(true);
+      this.searchData(true);
     },
     // SEARCH FOR LETTERS OR WORDS IN DEPENDENT SELECT LIST
     searchParam(search,loading){
@@ -476,59 +531,56 @@ export default {
           return;
       }  
       // SEARCHING ALL DATA AFTER THIRD LETTER INPUT
-      if((this.loading == false && this.searchWord.length > 2) || date == true){
-      this.loading = true;
-      this.testDesserts=[];
-      let dateRange = "cm:modified:['"+this.date+ "' TO '" +this.date2+ "']";
-      let filters = [];
-      for (let i = 0; i < self.list.length; i++) {
-        if(self.list[i].property!=null && self.list[i].searcTerm!=''){
-          filters.push({"query":self.list[i].property.value+self.list[i].searchTerm+"*"}); 
-        }
-      }
-      
-      if(self.checkboxFolder){
-        filters.push({"query" : "TYPE:'cm:folder'"});
-      }else if(self.checkboxPdf){
-        filters.push({"query": "cm:content.mimetype:application/pdf"});
-      } 
-      
-      axios.post('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/search/versions/1/search',
-          {
-             "query":{
-                 "query":dateRange
-             },
-             "paging": {
-                    "maxItems": this.maxItems,
-                    "skipCount": this.skipCount
-             },
-             "filterQueries": filters,
-             include: ["properties"]
-          },
-          {
-              headers:{
-                     Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
-                 }
-          }).then(response =>{
-            console.log(response);
-            this.pageNumber = Math.ceil(Number(response.data.list.pagination.totalItems)/this.maxItems);
-            Number(response.data.list.pagination.totalItems) < 1 ? this.pageNumber = 1 : 0;
-            response.data.list.pagination.hasMoreItems ? this.hasNext = true : this.hasNext = false;
-            this.skipCount > 0 ? this.hasPrev = true : this.hasPrev = false;
-            this.page = this.skipCount/this.maxItems + 1;
-            this.testDesserts = response.data.list.entries;
-            this.loading = false;
-          })
+       if((this.loading == false && this.searchWord.length > 2) || date == true){
+       this.loading = true;
+       this.testDesserts=[];
+       let dateRange = "cm:modified:['"+this.date+ "' TO '" +this.date2+ "']";
+       let filters = [];
+       for (let i = 0; i < self.list.length; i++) {
+         if(self.list[i].property!=null && self.list[i].searcTerm!=''){
+           filters.push({"query":self.list[i].property.value+"'*"+self.list[i].searchTerm+"*'"}); 
+         }
+       }
+       
+       if(self.checkboxFolder){
+         filters.push({"query" : "TYPE:'cm:folder'"});
+       }else if(self.checkboxPdf){
+         filters.push({"query": "cm:content.mimetype:application/pdf"});
+       } 
+       
+       axios.post(this.baseURL + 'search/versions/1/search',
+         {
+           "query":{
+             "query":dateRange
+           },
+           "paging": {
+             "maxItems": this.maxItems,
+             "skipCount": this.skipCount
+           },
+           "filterQueries": filters,
+           include: ["properties"]
+         },
+         {
+           headers:{
+             Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
+           }
+       }).then(response =>{
+          this.pageNumber = Math.ceil(Number(response.data.list.pagination.totalItems)/this.maxItems);
+          Number(response.data.list.pagination.totalItems) < 1 ? this.pageNumber = 1 : 0;
+          response.data.list.pagination.hasMoreItems ? this.hasNext = true : this.hasNext = false;
+          this.skipCount > 0 ? this.hasPrev = true : this.hasPrev = false;
+          this.page = this.skipCount/this.maxItems + 1;
+          this.testDesserts = response.data.list.entries;
+          this.loading = false;
+       })
       }
     },
-    // PREVIOUS PAGE BUTTON IF THERE IS ONE
     prev(){
        if(!this.loading){
         this.skipCount -= this.maxItems;
         this.searchData(true,this.skipCount);
       }
     },
-    // NEXT PAGE BUTTON IF THERE IS ONE
     next(){
       if(!this.loading){
         this.skipCount += this.maxItems;
@@ -541,6 +593,30 @@ export default {
 </script>
 
 <style scoped>
+.chat-enter-active{
+  animation: open-down .5s ease-out;
+}
+@keyframes open-down{
+  from{
+    transform: scaleY(0);
+  }
+  to{
+    transform: scaleY(1);
+  }
+}
+
+.chat-leave-active{
+  animation: close-up .5s ease-out;
+}
+@keyframes close-up{
+  from{
+    transform: scaleY(1);
+  }
+  to{
+    transform: scaleY(0);
+  }
+}
+
 .data-enter-active{
   animation: slide-top 1s ease-out;
 }
@@ -607,6 +683,32 @@ input{
   border-radius: 2px;
   overflow:hidden;
 }
-
+.chat-area{
+  height: 260px;
+  width: 100%;
+  background: rgb(228, 224, 224);
+  margin: 10px 0 10px;
+  overflow: scroll;
+}
+.leftAlign{
+  text-align: left;
+}
+.rightAlign{
+  text-align: right
+}
+.leftAlign div {
+  display: inline-block;
+  background: rgb(126, 240, 126);
+  border-radius: 10px;
+  padding: 3px;
+  margin: 0 0 3px;
+}
+.rightAlign div {
+  display: inline-block;
+  background: rgb(158, 170, 240);
+  border-radius: 10px;
+  padding: 3px;
+  margin: 0 0 3px;
+}
 
 </style>

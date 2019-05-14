@@ -16,11 +16,13 @@
   </head>
   <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.4/socket.io.js"></script>
     <noscript>
       <strong>We're sorry but fadata-pilot doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
-    <!-- built files will be auto injected -->
-    <script src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
+    <script type="text/javascript">
+     var socket = io('http://localhost:3000');
+    </script>
   </body>
 </html>

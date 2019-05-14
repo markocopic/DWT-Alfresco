@@ -120,18 +120,13 @@ export default {
     vselect
   },
   mounted() {
-
     var self = this;
-
-    //https://cors-anywhere.herokuapp.com/https://www.metaweather.com/api/location
-
-    axios.get('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?skipCount=0&maxItems=100',{
+    axios.get(this.baseURL + 'alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?skipCount=0&maxItems=100',{
       headers:{
-              Authorization: 'Basic YWRtaW46cFQwQzR6ZEJyYXdX'
-           }
+        Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
+      }
     }).then(response => {
       console.log(response.data.list.entries);
-      
       let entries = response.data.list.entries
       for(let entry in entries){
         var obj = {
@@ -140,273 +135,242 @@ export default {
         };
         this.options.push(obj);
       }
-      
     })
 
 
-        Dynamsoft.WebTwainEnv.CreateDWTObject(
-            "dwtcontrolContainer",
-            function (newDWObject) { 
-                self.DWObject = newDWObject;
-                self.DWObject.ShowImageEditor("dwtcontrolContainerLarge", 1200, 800);
-                self.DWObject.SetViewMode(2, 4);
-                self.DWObject.BackgroundFillColor = 0x000000;
-                self.DWObject.RegisterEvent('OnImageAreaSelected', function(nImageIndex, left, top,
-                  right, bottom, sAreaIndex){
-                    self.left = left;
-                    self.top = top;
-                    self.fontSize = bottom - top;
-                  });
-                 },
-            function (errorString) { 
-                console.log(errorString);
-                 }
-            );
-      
-      // Dynamsoft.WebTwainEnv.RegisterEvent('OnWebTwainReady', Dynamsoft_OnReady);
-      // function Dynamsoft_OnReady() {
-      //     self.DWObject = Dynamsoft.WebTwainEnv.GetWebTwain('dwtcontrolContainer');
-      //     self.DWObject.ShowImageEditor("dwtcontrolContainerLarge", 1200, 800);
-      //     self.DWObject.SetViewMode(2, 4);
-      //     self.DWObject.BackgroundFillColor = 0x000000;
-      //     self.DWObject.RegisterEvent('OnImageAreaSelected', function(nImageIndex, left, top,
-      //       right, bottom, sAreaIndex){
-      //         self.left = left;
-      //         self.top = top;
-      //         self.fontSize = bottom - top;
-      //       });
-      //     }
-      
-      // Dynamsoft.WebTwainEnv.Containers = [
-      //   { ContainerId: 'dwtcontrolContainer', Width: '100%', Height: '300px' },
-      //   { ContainerId: 'dwtcontrolContainerEdit', Width: '100%', Height: '800px' }
-      //   ];
-      
-    },
-    data(){
-      return {
-        image: '',
-        imgData: '',
-        scan: false,
-        editor: false,
-        DWObject: null,
-        DWObjectEdit: null,
-        comment:'',
-        docArray: [],
-        docName: '',
-        input: false,
-        showGrouped: false,
-        isInitial:true,
-        file: null,
-        dialog:false,
-        left: 0,
-        top: 0,
-        fontSize: 0,
-        editing: true,
-        users: [],
-        bin: null,
-        file: null,
-        alfrescoPDF: '',
-        options: [],
-        selected: '',
-        loading: false,
-        Id: '',
-        indexArr: [],
-        snackbar: false
-
+    Dynamsoft.WebTwainEnv.CreateDWTObject(
+      "dwtcontrolContainer",
+      function (newDWObject) { 
+        self.DWObject = newDWObject;
+        self.DWObject.ShowImageEditor("dwtcontrolContainerLarge", 1200, 800);
+        self.DWObject.SetViewMode(2, 4);
+        self.DWObject.BackgroundFillColor = 0x000000;
+        self.DWObject.RegisterEvent('OnImageAreaSelected', function(nImageIndex, left, top,
+          right, bottom, sAreaIndex){
+            self.left = left;
+            self.top = top;
+            self.fontSize = bottom - top;
+        });
+      },
+      function (errorString) { 
+        console.log(errorString);
       }
-    },
-    methods:{
-      postNewDoc(){
-        let self = this;
-        this.showGrouped = false; 
-        for(let i = 0; i<this.docArray.length; i++){
-          self.indexArr.push( self.docArray[i].files);
+    );
+      
+  },
+  data(){
+    return {
+      baseURL: this.$store.state.baseURL,
+      image: '',
+      imgData: '',
+      scan: false,
+      editor: false,
+      DWObject: null,
+      DWObjectEdit: null,
+      comment:'',
+      docArray: [],
+      docName: '',
+      input: false,
+      showGrouped: false,
+      isInitial:true,
+      file: null,
+      dialog:false,
+      left: 0,
+      top: 0,
+      fontSize: 0,
+      editing: true,
+      users: [],
+      bin: null,
+      file: null,
+      alfrescoPDF: '',
+      options: [],
+      selected: '',
+      loading: false,
+      Id: '',
+      indexArr: [],
+      snackbar: false
+    }
+  },
+  methods:{
+    postNewDoc(){
+      let self = this;
+      this.showGrouped = false; 
+      for(let i = 0; i<this.docArray.length; i++){
+        self.indexArr.push( self.docArray[i].files);
+        
+        let obj = {}
+        obj.name = this.docArray[i].name + '.pdf';
+        obj.nodeType = "cm:content";
           
-          let obj = {}
-            obj.name = this.docArray[i].name + '.pdf';
-            obj.nodeType = "cm:content";
-            
-          axios.post('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?autoRename=true',
-              JSON.stringify(obj)
-              ,
+        axios.post(this.baseURL + 'alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?autoRename=true',
+          JSON.stringify(obj),
+          {
+            headers:{
+                Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
+            }
+        }).then(response => {
+          let id = response.data.entry.id;
+          this.DWObject.ConvertToBlob (self.indexArr[i], EnumDWT_ImageType.IT_PDF, asyncSuccessFuncBlob,
+            asyncFailureFuncBlob);
+          function asyncSuccessFuncBlob (result) {
+            axios.put(self.baseURL + 'alfresco/versions/1/nodes/'+id+'/content?majorVersion=false',
+              result,
               {
                 headers:{
-                  Authorization: 'Basic YWRtaW46cFQwQzR6ZEJyYXdX'
+                  Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
                 }
-              })
-          .then(response => {
-              
-              let id = response.data.entry.id;
-              this.DWObject.ConvertToBlob (self.indexArr[i], EnumDWT_ImageType.IT_PDF, asyncSuccessFuncBlob,
-                asyncFailureFuncBlob);
-                function asyncSuccessFuncBlob (result) {
-                  axios.put('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/'+id+'/content?majorVersion=false',
-                      result,
-                        {headers:{
-                          Authorization: 'Basic YWRtaW46cFQwQzR6ZEJyYXdX'
-                        }
-                      })
-                  .then(response => {
-                      console.log(response);
-                  })
-                }
-                function asyncFailureFuncBlob (errorCode, errorString) {
-                  alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
-                }
-          })
-        }
-        this.docArray = [];
-      },
-      setId(val){
-        if(val == null){
-          this.Id = '';
-          return;
-        } 
-        
-        if(val!=='' || val !==null){
-          this.Id = val.value;
-        }
-        
-        
-      },
-      EditComment(){
-        console.log('editmode');
-        this.DWObject.ShowImageEditor("dwtcontrolContainerLarge", 1200, 800);
-        this.editing = !this.editing;
-        if(this.editing == true){
-          this.DWObject.SetViewMode(2, 4);
-        }else{
-          this.DWObject.SetViewMode(1, 1);
-        }
-        
-      },
-      LoadImage() {
-        if (this.DWObject) {
-          // Please NOTE that the PDF Rasterizer doesn't work for Chrome/Firefox 26-			
-          this.LoadImageInner();
-        }
-      },
-
-      LoadImageInner() {
-        
-        if (this.DWObject) {
-          if (this.DWObject.Addon.PDF.IsModuleInstalled()) {
-            this.DWObject.Addon.PDF.SetResolution(200);
-            this.DWObject.Addon.PDF.SetConvertMode(EnumDWT_ConvertMode.CM_RENDERALL);
+            }).then(response => {
+              console.log(response);
+            })
           }
-          this.DWObject.IfShowFileDialog = true; // Open the system's file dialog to load image
-          
-          this.DWObject.LoadImageEx("", EnumDWT_ImageType.IT_PDF, OnAcquireImageSuccess, OnAcquireImageFailure); // Load images in all supported formats (.bmp, .jpg, .tif, .png, .pdf). OnSuccess or OnFailure will be called after the operation
+          function asyncFailureFuncBlob (errorCode, errorString) {
+            alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
+          }
+        })
+      }
+      this.docArray = [];
+    },
+    setId(val){
+      if(val == null){
+        this.Id = '';
+        return;
+      } 
+      if(val!=='' || val !==null){
+        this.Id = val.value;
+      }
+    },
+    EditComment(){
+      console.log('editmode');
+      this.DWObject.ShowImageEditor("dwtcontrolContainerLarge", 1200, 800);
+      this.editing = !this.editing;
+      if(this.editing == true){
+        this.DWObject.SetViewMode(2, 4);
+      }else{
+        this.DWObject.SetViewMode(1, 1);
+      }
+      
+    },
+    LoadImage() {
+      if (this.DWObject) {
+        // Please NOTE that the PDF Rasterizer doesn't work for Chrome/Firefox 26-			
+        this.LoadImageInner();
+      }
+    },
+    LoadImageInner() {
+      if (this.DWObject) {
+        if (this.DWObject.Addon.PDF.IsModuleInstalled()) {
+          this.DWObject.Addon.PDF.SetResolution(200);
+          this.DWObject.Addon.PDF.SetConvertMode(EnumDWT_ConvertMode.CM_RENDERALL);
         }
-        var OnAcquireImageSuccess = function (){
-               console.log('success');
-            };
-        var OnAcquireImageFailure = function (){console.log('fail') };
-      },
-      OnHttpUploadSuccess() {
-        console.log('successful');
-      },
-      OnHttpUploadFailure(errorCode, errorString, sHttpResponse) {
-        alert(errorString + sHttpResponse);
-      },
-      GoToBarcode(){
-         Dynamsoft.WebTwainEnv.DeleteDWTObject('dwtcontrolContainer');
-         Dynamsoft.WebTwainEnv.DeleteDWTObject('dwtcontrolContainerLarge');
-        this.DWObject.CloseSource(); 
-        this.$router.push('/barcode');
-      },
-      AddNewDocGroup(){
-        this.input = false;
+        this.DWObject.IfShowFileDialog = true; // Open the system's file dialog to load image
+        
+        this.DWObject.LoadImageEx("", EnumDWT_ImageType.IT_PDF, OnAcquireImageSuccess, OnAcquireImageFailure); // Load images in all supported formats (.bmp, .jpg, .tif, .png, .pdf). OnSuccess or OnFailure will be called after the operation
+      }
+      var OnAcquireImageSuccess = function (){
+        console.log('success');
+      };
+      var OnAcquireImageFailure = function (){console.log('fail') };
+    },
+    OnHttpUploadSuccess() {
+      console.log('successful');
+    },
+    OnHttpUploadFailure(errorCode, errorString, sHttpResponse) {
+      alert(errorString + sHttpResponse);
+    },
+    GoToBarcode(){
+       Dynamsoft.WebTwainEnv.DeleteDWTObject('dwtcontrolContainer');
+       Dynamsoft.WebTwainEnv.DeleteDWTObject('dwtcontrolContainerLarge');
+      this.DWObject.CloseSource(); 
+      this.$router.push('/barcode');
+    },
+    AddNewDocGroup(){
+      this.input = false;
+      let self = this;
+      let arr = [];
+      for (let i = 0; i < this.DWObject.SelectedImagesCount; i++) {
+         arr.push(self.DWObject.GetSelectedImageIndex(i));
+      }
+      let obj = {};
+      obj.name = this.docName;
+      obj.files = arr;
+      this.docArray.push(obj);
+    },
+    AddComment(){
+      this.DWObject.CreateTextFont(this.fontSize, this.fontSize/2 , 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, "Arial");
+      this.DWObject.AddText(this.DWObject.GetSelectedImageIndex(0), this.left, this.top, this.comment, 0x0000ff, 0xffffff, 0.5, 0.5);
+    },
+    optionalAsyncSuccessFunc(){
+      console.log('success');
+      
+    },
+    optionalAsyncFailureFunc(){
+      console.log('fail');
+      
+    },
+    ShowImage(){
+      console.log(this.Id);
+      if(this.Id == '' || this.Id == undefined || this.Id == null){
+        this.snackbar = true;
+        return;
+      }   
+      this.DWObject.SetHTTPHeader('Authorization','Basic ' + btoa(sessionStorage.getItem('id')));
+      this.DWObject.HTTPDownload(this.baseURL,'alfresco/versions/1/nodes/'+this.Id+'/content?attachment=true',
+       this.optionalAsyncSuccessFunc,
+       this.optionalAsyncFailureFunc);
+    },
+    UploadImage(){
+      if(this.docArray.length < 1){
+        if(this.Id == '' || this.Id == undefined || this.Id == null){
+          this.snackbar = true;
+          return;
+        }
         let self = this;
         let arr = [];
+        let imagedata;
         for (let i = 0; i < this.DWObject.SelectedImagesCount; i++) {
-           arr.push(self.DWObject.GetSelectedImageIndex(i));
+          arr.push(self.DWObject.GetSelectedImageIndex(i));
+          self.DWObject.ConvertToGrayScale(self.DWObject.GetSelectedImageIndex(i));
         }
-        let obj = {};
-        obj.name = this.docName;
-        obj.files = arr;
-        this.docArray.push(obj);
-      },
-      AddComment(){
-        this.DWObject.CreateTextFont(this.fontSize, this.fontSize/2 , 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, "Arial");
-        this.DWObject.AddText(this.DWObject.GetSelectedImageIndex(0), this.left, this.top, this.comment, 0x0000ff, 0xffffff, 0.5, 0.5);
-      },
-      optionalAsyncSuccessFunc(){
-        console.log('success');
         
-      },
-      optionalAsyncFailureFunc(){
-        console.log('fail');
-        
-      },
-      ShowImage(){
-            console.log(this.Id);
-            
-            if(this.Id == '' || this.Id == undefined || this.Id == null){
-              this.snackbar = true;
-              return;
-            }
-            this.DWObject.SetHTTPHeader('Authorization','Basic YWRtaW46cFQwQzR6ZEJyYXdX');
-            this.DWObject.HTTPDownload('https://cors-anywhere.herokuapp.com','/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/'+this.Id+'/content?attachment=true',
-             this.optionalAsyncSuccessFunc,
-             this.optionalAsyncFailureFunc);
-      },
-      UploadImage(){
-          
-          if(this.docArray.length < 1){
-            if(this.Id == '' || this.Id == undefined || this.Id == null){
-              this.snackbar = true;
-              return;
-            }
-            let self = this;
-            let arr = [];
-            let imagedata;
-            for (let i = 0; i < this.DWObject.SelectedImagesCount; i++) {
-              arr.push(self.DWObject.GetSelectedImageIndex(i));
-              self.DWObject.ConvertToGrayScale(self.DWObject.GetSelectedImageIndex(i));
-            }
-            
-            this.DWObject.ConvertToBlob (arr, EnumDWT_ImageType.IT_PDF, asyncSuccessFuncBlob,
-              asyncFailureFuncBlob);
-              function asyncSuccessFuncBlob (result) {
-                axios.put('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/'+self.Id+'/content?majorVersion=false',
-                    result,
-                      {headers:{
-                        Authorization: 'Basic YWRtaW46cFQwQzR6ZEJyYXdX'
-                      }
-                    })
-                .then(response => {
-                    console.log(response);
-                })
+        this.DWObject.ConvertToBlob (arr, EnumDWT_ImageType.IT_PDF, asyncSuccessFuncBlob,
+          asyncFailureFuncBlob);
+        function asyncSuccessFuncBlob (result) {
+          axios.put(self.baseURL + 'alfresco/versions/1/nodes/'+self.Id+'/content?majorVersion=false',
+            result,
+            {
+              headers:{
+                Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
               }
-              function asyncFailureFuncBlob (errorCode, errorString) {
-                alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
-              }
-
-          }else{
-            this.showGrouped = true;
-          }
-          
-      },
-      AcquireImage(){
-        var self = this;
-        if (this.DWObject) {
-            this.DWObject.OpenSource();
-            this.DWObject.Resolution = 300;
-            //this.DWObject.PixelType = EnumDWT_PixelType.TWPT_GRAY;  
-            this.DWObject.IfShowUI = false;
-            var OnAcquireImageSuccess = function (){
-               console.log('success');
-            };
-            var OnAcquireImageFailure = function (){console.log('fail') };
-              
-            this.DWObject.AcquireImage(OnAcquireImageSuccess, OnAcquireImageFailure);
-              
-            this.DWObject.CloseSource();    
+          }).then(response => {
+            console.log(response);
+          })
         }
+        function asyncFailureFuncBlob (errorCode, errorString) {
+          alert("ErrorCode: "+errorCode +"\r"+"ErrorString:"+ errorString);
+        }
+      }else{
+        this.showGrouped = true;
+      }
+        
+    },
+    AcquireImage(){
+      var self = this;
+      if (this.DWObject) {
+        this.DWObject.OpenSource();
+        this.DWObject.Resolution = 300;
+        //this.DWObject.PixelType = EnumDWT_PixelType.TWPT_GRAY;  
+        this.DWObject.IfShowUI = false;
+        var OnAcquireImageSuccess = function (){
+          console.log('success');
+        };
+        var OnAcquireImageFailure = function (){console.log('fail') };
+          
+        this.DWObject.AcquireImage(OnAcquireImageSuccess, OnAcquireImageFailure);
+          
+        this.DWObject.CloseSource();    
       }
     }
+  }
 }
 </script>
 

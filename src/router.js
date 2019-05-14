@@ -47,9 +47,14 @@ export default new Router({
       component: () => import('./views/Search.vue')
     },
     {
+      path: '/chat/:id',
+      name: 'chat',
+      component: () => import('./views/Chat.vue')
+    },
+    {
       path: '*',
       name: 'redirect',
-      redirect: '/info'
+      redirect: '/barcode'
     }
   ]
 })

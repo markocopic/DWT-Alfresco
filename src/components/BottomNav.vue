@@ -27,6 +27,12 @@
         <span>Scanner</span>
         <v-icon>scanner</v-icon>
       </v-btn>
+
+      <v-btn dark :disabled="!$store.state.logged">
+        <span>Chat</span>
+        <v-icon>chat</v-icon>
+      </v-btn>
+
     </v-bottom-nav>
 </template>
 
@@ -34,7 +40,7 @@
   export default {
     data(){
       return {
-
+        show:false
       }
     },
     methods:{
@@ -60,6 +66,9 @@
           case 3: 
             this.$router.push('/scanner');
             return 'teal'
+          case 4: 
+            //this.$router.push('/chat/edcbd181-a2a7-4d2c-993e-d53d3be39b9a92');
+            return 'success'
         }
       }
     }

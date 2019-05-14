@@ -49,28 +49,15 @@
       return{
         username: "",
         password: "",
-        err: false
+        err: false,
+        baseURL: this.$store.state.baseURL
       }
     },
     mounted(){
+      let self = this;
 
-      // axios.post('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/search/versions/1/search',
-      //     {
-      //        "query":{
-      //            //"query":"ASPECT:'csm:NoviPodatak'"
-      //            "query":"csm:metapodatak:*"
-      //        },
-      //         include: ["properties","aspectNames"]
-      //     },
-      //     {
-      //         headers:{
-      //                Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
-      //            }
-      //     }).then(response =>{
-      //       console.log(response);
-      //     })
-
-      axios.get('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/authentication/versions/1/tickets/-me-',{
+      
+      axios.get(this.baseURL + 'authentication/versions/1/tickets/-me-',{
             headers:{
                      Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
                  }
@@ -80,14 +67,22 @@
           }).catch(error =>{
             console.log(error);
           })
+
+        
+
+
+
     },
     methods: {
       login(){
-          axios.post('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/authentication/versions/1/tickets',{
+          axios.post(this.baseURL + 'authentication/versions/1/tickets',{
               "userId":this.username,
               "password":this.password
           }).then(response =>{
+            console.log(response.data);
+            
             sessionStorage.setItem('id',response.data.entry.id);
+            sessionStorage.setItem('name',response.data.entry.userId);
             this.$store.state.logged = true;
             this.$store.state.bottomNav = 1;
           }).catch(error =>{
@@ -96,6 +91,8 @@
       }
     }
   }
+  
+
 </script>
 
 <style>

@@ -125,6 +125,8 @@
 
 export default {
   mounted() {
+
+
    let self = this;
    Dynamsoft.WebTwainEnv.Containers = [{ ContainerId: 'dwtcontrolContainer1', Width: '100%', Height: '600px' }];    
    if (Dynamsoft && (!Dynamsoft.Lib.env.bWin || !Dynamsoft.Lib.product.bChromeEdition)) {
@@ -143,12 +145,8 @@ export default {
    //Dynamsoft.WebTwainEnv.ProductKey = '***';
    Dynamsoft.WebTwainEnv.RegisterEvent('OnWebTwainReady', Dynamsoft_OnReady);
    function Dynamsoft_OnReady() {
-   console.log('dynam ready');
-       
    self.DWObject1 = Dynamsoft.WebTwainEnv.GetWebTwain('dwtcontrolContainer1');
-   console.log(self.DWObject1);
    self.dbrObject = new dynamsoft.BarcodeReader();
-   console.log('barcode reader ready');
    if (self.DWObject1) {
      self.DWObject1.SetViewMode(3, 3);
      }
@@ -157,6 +155,7 @@ export default {
   },
   data(){
     return {
+      baseURL: this.$store.state.baseURL,
       DWObject1: null,
       dbrObject: null,
       dialog: false,
@@ -172,7 +171,7 @@ export default {
       meta: [],
       title: '',
       description: '',
-      documentName: 'AA',
+      documentName: '',
       iteration: 0,
       nameArr:[],
       arrayArr:[],
@@ -220,7 +219,7 @@ export default {
     },
     getDocumentData(){
       this.documents = [];
-      axios.get('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?skipCount=0&maxItems=100',{
+      axios.get(this.baseURL + 'alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?skipCount=0&maxItems=100',{
         headers:{
           Authorization: 'Basic ' + btoa(sessionStorage.getItem('id'))
         }
@@ -331,7 +330,7 @@ export default {
           }
         }
           
-        axios.post('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?autoRename=true',
+        axios.post(this.baseURL + 'alfresco/versions/1/nodes/45dbad81-e657-4020-9266-e09dc597c25f/children?autoRename=true',
           JSON.stringify(obj),
           {
             headers:{
@@ -341,7 +340,7 @@ export default {
           this.DWObject1.ConvertToBlob (arrayArr[i], EnumDWT_ImageType.IT_PDF, asyncSuccessFuncBlob,
             asyncFailureFuncBlob);
           function asyncSuccessFuncBlob (result) {
-            axios.put('https://cors-anywhere.herokuapp.com/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/'+response.data.entry.id+'/content?majorVersion=false',
+            axios.put(self.baseURL + 'alfresco/versions/1/nodes/'+response.data.entry.id+'/content?majorVersion=false',
               result,
               {
                 headers:{
@@ -535,7 +534,7 @@ export default {
         return;
       }
       this.DWObject1.SetHTTPHeader('Authorization','Basic ' + btoa(sessionStorage.getItem('id')));
-      this.DWObject1.HTTPDownload('https://cors-anywhere.herokuapp.com','/http://35.204.234.73/alfresco/api/-default-/public/alfresco/versions/1/nodes/'+this.file.value+'/content?attachment=true',
+      this.DWObject1.HTTPDownload(this.baseURL,'alfresco/versions/1/nodes/'+this.file.value+'/content?attachment=true',
        this.optionalAsyncSuccessFunc,
        this.optionalAsyncFailureFunc);
     },  
